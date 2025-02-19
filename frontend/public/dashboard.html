@@ -10,6 +10,12 @@
   <div id="userInfo"></div>
   <button id="logoutBtn">Logout</button>
 
+  <form action="/upload-csv" method="post" enctype="multipart/form-data">
+  <input type="file" name="file" accept=".csv">
+  <button type="submit">Upload</button>
+  </form>
+
+
   <script>
     // Function to decode the JWT token
     function decodeJwt(token) {

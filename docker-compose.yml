@@ -5,10 +5,11 @@ services:
       - "3000:3000"
     depends_on:
       - auth-service
+      - backend
     networks:
       - app-network
     volumes:
-      - ./frontend:/usr/src/app  # Map local frontend directory to container
+      - ./frontend:/usr/src/app
     environment:
       - NODE_ENV=development
 
@@ -19,10 +20,49 @@ services:
     networks:
       - app-network
     volumes:
-      - ./auth_service:/usr/src/app  # Map local auth_service directory to container
+      - ./auth_service:/usr/src/app
     environment:
       - PYTHONUNBUFFERED=1
+
+  backend:
+    build: ./backend
+    ports:
+      - "8002:8002"
+    networks:
+      - app-network
+    volumes:
+      - ./backend:/usr/src/app  # Sync local changes
+      - ./backend/data:/usr/src/app/data  # Persist uploaded files
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  mariadb:
+    image: mariadb:latest
+    restart: always
+    ports:
+      - "3310:3306"  # Map container's port 3306 to host's port 3310
+    networks:
+      - app-network
+    environment:
+      - MARIADB_ROOT_PASSWORD=rootpassword
+      - MARIADB_DATABASE=csv_database
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+  mongodb:
+    image: mongo:latest
+    restart: always
+    ports:
+      - "27017:27017"
+    networks:
+      - app-network
+    volumes:
+      - mongodb_data:/data/db
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  mariadb_data:
+  mongodb_data:

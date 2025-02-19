@@ -56,7 +56,7 @@ def register(user: User):
 # Login user
 @app.post("/login", response_model=Token)
 def login(user: User):
-    print(f"Login attempt for username: {user.username}")
+    print(f"Login attempt for {user.username}")
     stored_password = users_db.get(user.username)
 
     if not stored_password:
