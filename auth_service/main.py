@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -5,7 +6,7 @@ from passlib.context import CryptContext
 import jwt
 import datetime
 
-SECRET_KEY = "acit3495"
+SECRET_KEY = os.getenv("SECRET_KEY", "acit3495")  # Fetch the secret key from the environment
 
 app = FastAPI()
 

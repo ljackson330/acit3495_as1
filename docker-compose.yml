@@ -5,11 +5,12 @@ services:
       - "3000:3000"
     depends_on:
       - auth-service
-      - backend
+      - mariadb
+      - mongodb  # Add dependency on MongoDB
     networks:
       - app-network
     volumes:
-      - ./frontend:/usr/src/app
+      - ./frontend:/usr/src/app  # Map local frontend directory to container
     environment:
       - NODE_ENV=development
 
@@ -20,49 +21,78 @@ services:
     networks:
       - app-network
     volumes:
-      - ./auth_service:/usr/src/app
-    environment:
-      - PYTHONUNBUFFERED=1
-
-  backend:
-    build: ./backend
-    ports:
-      - "8002:8002"
-    networks:
-      - app-network
-    volumes:
-      - ./backend:/usr/src/app  # Sync local changes
-      - ./backend/data:/usr/src/app/data  # Persist uploaded files
+      - ./auth_service:/usr/src/app  # Map local auth_service directory to container
     environment:
       - PYTHONUNBUFFERED=1
 
   mariadb:
     image: mariadb:latest
-    restart: always
-    ports:
-      - "3310:3306"  # Map container's port 3306 to host's port 3310
-    networks:
-      - app-network
     environment:
-      - MARIADB_ROOT_PASSWORD=rootpassword
-      - MARIADB_DATABASE=csv_database
-    volumes:
-      - mariadb_data:/var/lib/mysql
-
-  mongodb:
-    image: mongo:latest
-    restart: always
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
     ports:
-      - "27017:27017"
+      - "3306:3306"
     networks:
       - app-network
     volumes:
-      - mongodb_data:/data/db
+      - mariadb-data:/var/lib/mysql  # Persist database data
+
+  mongodb:  # New MongoDB service
+    image: mongo:latest  # Using the official MongoDB image
+    container_name: mongodb
+    command:
+      - --auth
+    ports:
+      - "27017:27017"  # Expose the default MongoDB port
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+    networks:
+      - app-network
+    volumes:
+      - mongodb-data:/data/db  # Persist MongoDB data
+
+  backend:
+    build: ./backend
+    ports:
+      - "8002:8002"
+    depends_on:
+      - auth-service
+      - mariadb
+      - mongodb  # Add dependency on MongoDB
+    networks:
+      - app-network
+    volumes:
+      - ./backend:/usr/src/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+
+  analytics-service: # New analytics service
+    build: ./analytics_service
+    ports:
+      - "8003:8003"
+    depends_on:
+      - mariadb
+      - mongodb  # Ensure MongoDB is available
+    networks:
+      - app-network
+    volumes:
+      - ./analytics_service:/usr/src/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MYSQL_HOST=mariadb
+      - MYSQL_DB=app_db
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MONGO_URI=${MONGO_URI}
+    command: [ "python", "analytics_service.py" ]  # Command to run the service
 
 networks:
   app-network:
     driver: bridge
 
 volumes:
-  mariadb_data:
-  mongodb_data:
+  mariadb-data:
+  mongodb-data:  # Volume for MongoDB data

@@ -8,6 +8,19 @@
 <body>
   <h1>Welcome to the Dashboard</h1>
   <div id="userInfo"></div>
+
+  <!-- Add a section for entering the float value -->
+  <div>
+    <h2>Enter a Float Value</h2>
+    <input type="number" id="floatValue" step="any" placeholder="Enter a float" required>
+    <button id="submitFloatBtn">Submit</button>
+    <div id="floatMessage"></div>
+  </div>
+
+  <button id="calcStatsBtn">Calculate Statistics</button>
+  <div id="statsMessage"></div>
+
+
   <button id="logoutBtn">Logout</button>
 
   <form action="/upload-csv" method="post" enctype="multipart/form-data">
@@ -44,7 +57,58 @@
         localStorage.removeItem("token");
         window.location.href = "/index.html";
       });
+
+      // Add functionality to submit the float value to the backend
+      document.getElementById("submitFloatBtn").addEventListener("click", async () => {
+        const floatValue = parseFloat(document.getElementById("floatValue").value);
+        if (isNaN(floatValue)) {
+          document.getElementById("floatMessage").innerText = "Please enter a valid float.";
+          return;
+        }
+
+        try {
+          const response = await fetch("http://localhost:8002/insert-float/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ value: floatValue })
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            document.getElementById("floatMessage").innerText = `Value ${data.value} inserted successfully!`;
+          } else {
+            document.getElementById("floatMessage").innerText = `Error: ${data.detail}`;
+          }
+        } catch (error) {
+          document.getElementById("floatMessage").innerText = `Error: ${error.message}`;
+        }
+      });
     }
+    document.getElementById("calcStatsBtn").addEventListener("click", async () => {
+    try {
+        const response = await fetch("http://localhost:8002/get-stats/", {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            document.getElementById("statsMessage").innerText = `Statistics:
+                Min: ${data.min}, Max: ${data.max}, Mean: ${data.mean}, Median: ${data.median}`;
+        } else {
+            document.getElementById("statsMessage").innerText = `Error: ${data.detail}`;
+        }
+    } catch (error) {
+        document.getElementById("statsMessage").innerText = `Error: ${error.message}`;
+    }
+});
   </script>
 </body>
 </html>
